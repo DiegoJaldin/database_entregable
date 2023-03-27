@@ -14,5 +14,5 @@ routerUsers
   .get(usersControllers.findOneUser)
   .patch(usersControllers.updateUsers)
   .delete(usersControllers.deleteUsers);
-  
+
 module.exports = routerUsers;

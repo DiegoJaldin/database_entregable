@@ -1,6 +1,6 @@
 const express = require('express');
 
-const repairsControllers = require('./../controllers/repairs.controllers')
+const repairsControllers = require('./../controllers/repairs.controllers');
 
 const routerRepair = express.Router();
 

@@ -1,6 +1,17 @@
-const app = require("./app");
+require('dotenv').config();
+const app = require('./app');
+const { db } = require('./database/config');
 
-const port = 3008;
+db.authenticate()
+  .then(() => console.log('data authenticate'))
+  .catch((err) => console.log(err));
+
+db.sync()
+  .then(() => console.log('database sync'))
+  .catch((err) => console.log(err));
+
+const port = process.env.PORT;
+
 app.listen(port, () => {
-  console.log(`This port is ${port}`)
-})
+  console.log(port);
+});
