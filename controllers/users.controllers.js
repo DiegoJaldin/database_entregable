@@ -1,6 +1,59 @@
-const User = require('../models/users.model')
+const User = require('../models/users.model');
+const catchAsync = require('../utils/catchAsync');
+const bcryptjs = require('bcryptjs');
+const jwt = require('../utils/jwt');
+const AppError = require("../utils/appError");
 
-exports.findAllUsers = async (req, res) => {
+exports.loginUser = catchAsync(
+  async (req, res) => {
+    const { email, password } = req.body;
+
+    const user = await User.findOne({
+      where: {
+        email: email.toLowerCase(),
+        status: 'available',
+      },
+    });
+
+    if (!user) {
+      return next(
+        new AppError(
+          'The user could not be found',
+          404
+        )
+      );
+    }
+
+    if (
+      !(await bcryptjs.compare(
+        password,
+        user.password
+      ))
+    ) {
+      return next(
+        new AppError(
+          'Incorrect email or password',
+          401
+        )
+      );
+    };
+
+    const token = await jwt(user.id);
+
+    res.status(200).json({
+      status: 'success',
+      token,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
+    });
+  }
+);
+
+exports.findAllUsers = catchAsync(async (req, res) => {
   const users = await User.findAll({
     where: {
       status: 'available'
@@ -12,68 +65,55 @@ exports.findAllUsers = async (req, res) => {
     results: users.length,
     users,
   });
-};
+}); 
 
-exports.createUsers = async (req, res) => {
+exports.createUsers =catchAsync(async (req, res) => {
   const { name, email, password, role } = 
     req.body;
+
+  const salt = await bcryptjs.genSalt(10);
+
+  const encryptedPassword = await bcryptjs.hash(password, salt);
 
   const user = await User.create({
     name,
     email,
-    password,
+    password: encryptedPassword,
     role,
   });
+
+  const token = await jwt(user.id);
   
   res.status(201).json({
     status: 'success',
     message: 'The user has been created',
-    user,
+    token,
+    user: {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+    }
   })
-}
+}); 
 
-exports.findOneUser = async (req, res) => {
-  const { id } = req.params;
-
-  const user = await User.findOne({
-    where: {
-      id,
-      status: 'available',
-    },
-  });
-
-  if(!user) {
-    return res.status(404).json({
-      status: 'error',
-      message: 'User can not be found',
-    });
-  }
+exports.findOneUser =catchAsync( async (req, res) => {
+  const { user } = req;
 
   res.status(200).json({
-    status: 'error',
-    message: 'Greetings user',
-    user,
-  })
-}
-
-exports.updateUsers = async (req, res) => {
-  const { id } = req.params;
-
-  const user = await User.findOne({
-    where: {
-      id,
-      status: 'available',
+    status: 'success',
+    user: {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role
     },
-  });
+  })
+});
 
+exports.updateUsers = catchAsync(async (req, res) => {
   const { name, email } = req.body;
-
-  if(!user) {
-    return res.status(404).json({
-      status: 'error',
-      message: 'User can not be found',
-    });
-  }
+  const { user } = req;
 
   await user.update({
     name,
@@ -84,31 +124,16 @@ exports.updateUsers = async (req, res) => {
     status: 'success',
     message: 'The user has been updated',
   });
-};
+}); 
 
-exports.deleteUsers = async (req, res) => {
-  const { id } = req.params;
-
-  const user = await User.findOne({
-    where: {
-      id,
-      status: 'available',
-    },
-  });
-
-  if(!user) {
-    return res.status(404).json({
-      status: 'error',
-      message: `User with id ${id} can not be found`,
-    });
-  }
+exports.deleteUsers =catchAsync(async (req, res) => {
+  const { user } = req;
 
   await user.update({
-    status: 'disabled',
+    status: 'disabled'
   });
-
   res.status(200).json({
     message: 'This user has been deleted',
   })
-}
+}); 
 
